@@ -1,0 +1,32 @@
+# Core FastAPI
+fastapi>=0.109.0,<1.0.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+websockets>=12.0
+
+# LangChain
+langchain>=0.1.6,<0.3.0
+langchain-openai>=0.0.5,<0.3.0
+langchain-community>=0.0.20,<0.3.0
+openai>=1.12.0,<2.0.0
+
+# Vector DB
+chromadb>=0.4.22,<0.6.0
+
+# Data
+pydantic>=2.6.0,<3.0.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.1
+
+# Utilities
+aiohttp>=3.9.3
+requests>=2.31.0
+python-dateutil>=2.8.2
+nest-asyncio>=1.6.0
+
+# Search tools
+duckduckgo-search>=4.1.1,<8.0.0
+
+# Testing
+pytest>=8.0.0
+httpx>=0.26.0

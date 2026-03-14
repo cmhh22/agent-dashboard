@@ -1,0 +1,32 @@
+:host {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Override Angular input autofill for dark theme */
+input:-webkit-autofill {
+  -webkit-text-fill-color: #e2e8f0 !important;
+  -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+  caret-color: #e2e8f0;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Message content inline code / pre formatting */
+.message-content {
+  code {
+    @apply bg-dark-700/60 text-accent-300 px-1.5 py-0.5 rounded text-xs font-mono;
+  }
+  pre {
+    @apply bg-dark-800/80 rounded-lg p-3 my-2 overflow-x-auto text-xs;
+    code {
+      @apply bg-transparent p-0;
+    }
+  }
+}

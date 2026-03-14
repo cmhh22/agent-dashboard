@@ -1,0 +1,59 @@
+services:
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agent-dashboard-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - VECTOR_DB_PATH=/app/data/chroma_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CORS_ORIGINS=["http://localhost:4200"]
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+    networks:
+      - agent-network
+    restart: unless-stopped
+
+  # Angular Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: agent-dashboard-frontend
+    ports:
+      - "4200:80"
+    environment:
+      - API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - agent-network
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: agent-dashboard-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - agent-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+networks:
+  agent-network:
+    driver: bridge
+
+volumes:
+  redis-data:
