@@ -7,7 +7,10 @@ from typing import List, Dict, Any
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+try:
+    from langchain_chroma import Chroma
+except ImportError:  # fallback for older environments
+    from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
@@ -183,6 +186,11 @@ class RAGService:
             
             # Evaluate
             result = evaluate(dataset, metrics=metrics)
+
+            # RAGAS may return a Score object, convert to plain dict
+            if hasattr(result, "to_pandas"):
+                result_df = result.to_pandas()
+                result = result_df.mean(numeric_only=True).to_dict()
             
             logger.info(f"RAG evaluation completed: {result}")
             return result

@@ -54,8 +54,8 @@ Send a message to the AI agent.
   "conversation_id": "abc-123-def-456",
   "tool_calls": [
     {
-      "tool": "calculator",
-      "input": "2 + 2",
+      "tool": "code_interpreter",
+      "input": "print(2 + 2)",
       "output": "The result is: 4"
     }
   ],
@@ -245,8 +245,8 @@ List all available agent tools.
 {
   "tools": [
     {
-      "name": "calculator",
-      "description": "Useful for performing mathematical calculations...",
+      "name": "code_interpreter",
+      "description": "Execute Python code in a sandbox for calculations and data operations...",
       "parameters": {}
     },
     {
@@ -257,12 +257,17 @@ List all available agent tools.
       }
     },
     {
+      "name": "url_analyzer",
+      "description": "Fetch and analyze URL/webpage content...",
+      "parameters": {}
+    },
+    {
       "name": "rag_tool",
       "description": "Useful for retrieving information from documents...",
       "parameters": {}
     }
   ],
-  "count": 3
+  "count": 4
 }
 ```
 

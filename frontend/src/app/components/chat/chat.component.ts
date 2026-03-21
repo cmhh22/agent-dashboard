@@ -16,6 +16,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   messages: ChatMessage[] = [];
   currentMessage = '';
   isLoading = false;
+  uiNotice: { text: string; tone: 'error' | 'success' } | null = null;
   useStreaming = true;
   conversationId?: string;
   currentStreamingMessage = '';
@@ -28,6 +29,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   
   private wsSubscription?: Subscription;
   private shouldScrollToBottom = false;
+  private noticeTimer?: ReturnType<typeof setTimeout>;
 
   @ViewChild('messagesContainer') private messagesContainer?: ElementRef;
 
@@ -41,8 +43,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngOnDestroy(): void {
+    if (this.noticeTimer) {
+      clearTimeout(this.noticeTimer);
+    }
     this.wsSubscription?.unsubscribe();
     this.wsService.disconnect();
+  }
+
+  private setNotice(text: string, tone: 'error' | 'success' = 'error'): void {
+    this.uiNotice = { text, tone };
+    if (this.noticeTimer) {
+      clearTimeout(this.noticeTimer);
+    }
+    this.noticeTimer = setTimeout(() => {
+      this.uiNotice = null;
+    }, 4500);
   }
 
   ngAfterViewChecked(): void {
@@ -135,6 +150,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error) => {
         console.error('Error sending message:', error);
+        this.setNotice('No se pudo enviar el mensaje. Reintenta en unos segundos.', 'error');
         this.isLoading = false;
       }
     });
@@ -157,6 +173,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       
       case 'error':
         console.error('WebSocket error:', message.content);
+        this.setNotice(message.content || 'Error en WebSocket. Cambia a modo sin streaming o reconecta.', 'error');
         this.isLoading = false;
         break;
     }
@@ -166,9 +183,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.useStreaming = !this.useStreaming;
     if (this.useStreaming) {
       this.connectWebSocket();
+      this.setNotice('Streaming activado.', 'success');
     } else {
       this.wsSubscription?.unsubscribe();
       this.wsService.disconnect();
+      this.setNotice('Streaming desactivado. Usando modo request/response.', 'success');
     }
   }
 
@@ -218,10 +237,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.uploadFile(file).subscribe({
       next: () => {
         entry.status = 'done';
+        this.setNotice(`Documento subido: ${file.name}`, 'success');
       },
       error: (err) => {
         console.error('Upload failed:', err);
         entry.status = 'error';
+        this.setNotice(`Falló la subida de ${file.name}`, 'error');
       }
     });
   }

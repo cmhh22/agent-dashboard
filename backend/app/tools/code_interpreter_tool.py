@@ -1,6 +1,7 @@
 """
 Code Interpreter tool — executes Python code in a sandboxed subprocess.
 """
+import ast
 import subprocess
 import sys
 import tempfile
@@ -14,14 +15,55 @@ logger = logging.getLogger(__name__)
 _TIMEOUT_SECONDS = 10
 _MAX_OUTPUT_CHARS = 4000
 
-# Dangerous modules / keywords that are blocked
-_BLOCKED = {
-    "os.system", "subprocess", "shutil.rmtree", "shutil.move",
-    "__import__", "exec(", "eval(", "compile(",
-    "open(", "pathlib", "glob",
-    "socket", "http.server", "ftplib", "smtplib",
-    "ctypes", "importlib",
+# Dangerous imports and calls that are blocked
+_BLOCKED_MODULES = {
+    "os", "subprocess", "shutil", "pathlib", "glob",
+    "socket", "http", "ftplib", "smtplib",
+    "ctypes", "importlib", "sys",
 }
+
+_BLOCKED_CALLS = {
+    "eval", "exec", "compile", "open", "input", "__import__",
+    "getattr", "setattr", "delattr", "globals", "locals", "vars",
+}
+
+
+def _attr_to_str(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _attr_to_str(node.value)
+        return f"{parent}.{node.attr}" if parent else node.attr
+    return ""
+
+
+def _validate_python_safety(code: str) -> str | None:
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as exc:
+        return f"❌ Python syntax error: {exc.msg} (line {exc.lineno})"
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                root = alias.name.split(".")[0]
+                if root in _BLOCKED_MODULES:
+                    return f"⚠️ Blocked import: '{alias.name}' is not allowed."
+
+        if isinstance(node, ast.ImportFrom):
+            module = (node.module or "").split(".")[0]
+            if module in _BLOCKED_MODULES:
+                return f"⚠️ Blocked import: 'from {node.module} import ...' is not allowed."
+
+        if isinstance(node, ast.Call):
+            call_name = _attr_to_str(node.func)
+            call_root = call_name.split(".")[0] if call_name else ""
+            if call_name in _BLOCKED_CALLS or call_root in _BLOCKED_CALLS:
+                return f"⚠️ Blocked call: '{call_name}' is not allowed."
+            if call_root in _BLOCKED_MODULES:
+                return f"⚠️ Blocked module call: '{call_name}' is not allowed."
+
+    return None
 
 
 class CodeInterpreterTool(BaseTool):
@@ -37,10 +79,9 @@ class CodeInterpreterTool(BaseTool):
 
     def _run(self, code: str) -> str:
         """Run Python code in a subprocess with timeout."""
-        # Basic safety check
-        for blocked in _BLOCKED:
-            if blocked in code:
-                return f"⚠️ Blocked: usage of '{blocked}' is not allowed for security reasons."
+        safety_error = _validate_python_safety(code)
+        if safety_error:
+            return safety_error
 
         tmp = None
         try:
@@ -50,12 +91,18 @@ class CodeInterpreterTool(BaseTool):
             tmp.write(code)
             tmp.close()
 
+            safe_env = os.environ.copy()
+            safe_env["PYTHONDONTWRITEBYTECODE"] = "1"
+            safe_env["PYTHONNOUSERSITE"] = "1"
+            safe_env.pop("PYTHONPATH", None)
+
             result = subprocess.run(
-                [sys.executable, tmp.name],
+                [sys.executable, "-I", tmp.name],
                 capture_output=True,
                 text=True,
                 timeout=_TIMEOUT_SECONDS,
                 cwd=tempfile.gettempdir(),
+                env=safe_env,
             )
 
             stdout = result.stdout.strip()

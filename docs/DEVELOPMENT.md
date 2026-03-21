@@ -59,7 +59,8 @@ backend/
 │   │   ├── agent_service.py
 │   │   └── rag_service.py
 │   ├── tools/               # LangChain tools
-│   │   ├── calculator_tool.py
+│   │   ├── code_interpreter_tool.py
+│   │   ├── url_analyzer_tool.py
 │   │   ├── web_search_tool.py
 │   │   └── rag_tool.py
 │   └── websocket/           # WebSocket handlers
@@ -106,8 +107,9 @@ class MyCustomTool(BaseTool):
 from app.tools.my_custom_tool import MyCustomTool
 
 self.tools = [
-    CalculatorTool(),
+    CodeInterpreterTool(),
     WebSearchTool(),
+    URLAnalyzerTool(),
     RAGTool(),
     MyCustomTool()  # Add your tool
 ]

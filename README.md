@@ -103,9 +103,9 @@ API_URL=http://localhost:8000
 The LangChain agent includes:
 
 1. **Web Search Tool**: DuckDuckGo search integration
-2. **Calculator Tool**: Mathematical computations
-3. **RAG Tool**: Document retrieval and QA
-4. **Custom Tools**: Extensible tool system
+2. **Code Interpreter Tool**: Sandboxed Python execution for calculations and data tasks
+3. **URL Analyzer Tool**: Fetch and analyze webpage content
+4. **RAG Tool**: Document retrieval and QA
 
 ## 🎓 RAG Evaluation
 

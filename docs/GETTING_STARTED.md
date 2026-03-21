@@ -59,8 +59,9 @@ Once all services are running:
 
 1. Open http://localhost:4200 in your browser
 2. Try asking questions:
-   - "What is 15 * 24?" (Calculator tool)
+  - "Write Python to compute 15 * 24" (Code Interpreter tool)
    - "What's the latest news about AI?" (Web search tool)
+  - "Analyze this URL: https://en.wikipedia.org/wiki/AI" (URL Analyzer tool)
    - Upload a document first, then ask about it (RAG tool)
 
 ## Local Development Setup (Without Docker)
@@ -132,13 +133,17 @@ Or use the API documentation interface at http://localhost:8000/docs
 
 Try these example queries:
 
-**Calculator:**
-- "What is 156 divided by 12?"
-- "Calculate 2 to the power of 10"
+**Code Interpreter:**
+- "Write Python code to compute 156 divided by 12"
+- "Calculate 2 to the power of 10 using Python"
 
 **Web Search:**
 - "What are the latest developments in AI?"
 - "Tell me about the weather in Paris"
+
+**URL Analyzer:**
+- "Analyze this URL: https://example.com"
+- "Read and summarize this article URL"
 
 **RAG (after uploading documents):**
 - "What programming language is Python?"
