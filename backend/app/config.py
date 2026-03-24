@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     chunk_overlap: int = 200
     top_k_results: int = 5
     
+    # Search Provider Configuration
+    search_provider: str = "duckduckgo"  # "duckduckgo" or "tavily"
+    tavily_api_key: str = ""
+
     # Redis Configuration (optional)
     redis_host: str = "redis"
     redis_port: int = 6379
