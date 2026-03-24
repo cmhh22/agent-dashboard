@@ -59,13 +59,17 @@ class TavilySearchTool(BaseTool):
     description: str = """Useful for searching the internet for current information, news, facts, or any topic.
     Input should be a search query string. Returns relevant search results with titles and snippets."""
 
+    _client: object = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        from tavily import TavilyClient
+        self._client = TavilyClient(api_key=settings.tavily_api_key)
+
     def _run(self, query: str) -> str:
         """Execute the web search tool using Tavily."""
         try:
-            from tavily import TavilyClient
-
-            client = TavilyClient(api_key=settings.tavily_api_key)
-            response = client.search(
+            response = self._client.search(
                 query=query,
                 max_results=_DEFAULT_MAX_RESULTS,
                 search_depth="basic",
@@ -103,6 +107,8 @@ def get_search_tool() -> BaseTool:
     """
     provider = settings.search_provider.lower()
     if provider == "tavily":
+        if not settings.tavily_api_key:
+            raise ValueError("TAVILY_API_KEY must be set when SEARCH_PROVIDER=tavily")
         logger.info("Using Tavily as the web search provider")
         return TavilySearchTool()
     logger.info("Using DuckDuckGo as the web search provider")
