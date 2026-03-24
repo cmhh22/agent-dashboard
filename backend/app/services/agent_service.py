@@ -10,7 +10,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 
 from app.config import settings
 from app.tools.code_interpreter_tool import CodeInterpreterTool
-from app.tools.web_search_tool import WebSearchTool
+from app.tools.web_search_tool import get_search_tool
 from app.tools.url_analyzer_tool import URLAnalyzerTool
 from app.tools.rag_tool import RAGTool
 
@@ -41,7 +41,7 @@ class AgentService:
         
         self.tools = [
             CodeInterpreterTool(),
-            WebSearchTool(),
+            get_search_tool(),
             URLAnalyzerTool(),
             rag_tool,
         ]
@@ -70,7 +70,7 @@ Use them proactively to give the best possible answer.
 
 Available tools:
 - Code Interpreter: Execute Python code for math, data analysis, algorithms, charts logic, string ops, date calculations — anything computable. Always use print() to show results.
-- Web Search: Search the internet (via DuckDuckGo) for current events, news, facts, documentation.
+- Web Search: Search the internet for current events, news, facts, documentation.
 - URL Analyzer: Fetch and read the content of any URL the user shares or that you find via web search.
 - RAG Knowledge Base: Search the user's uploaded documents for relevant information.
 
