@@ -1,341 +1,156 @@
-<div class="h-screen flex bg-dark-950 overflow-hidden">
-
-  <!-- ═══ SIDEBAR ═══ -->
-  <aside class="w-72 flex-shrink-0 glass border-r border-dark-600/30 flex flex-col">
-    <!-- Logo -->
-    <div class="p-5 border-b border-dark-600/20">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-neon-cyan flex items-center justify-center shadow-glow-sm">
-          <svg class="w-6 h-6 text-dark-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold text-white tracking-tight">Agent Dashboard</h1>
-          <p class="text-xs text-dark-300 font-medium">AI-Powered Assistant</p>
-        </div>
+<div class="dashboard-shell">
+  <aside class="left-sidebar">
+    <div class="brand-block">
+      <div class="brand-icon">◼</div>
+      <div>
+        <h1>terminal</h1>
+        <p>System Architect</p>
       </div>
     </div>
 
-    <!-- Scrollable sidebar content -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+    <button class="new-chat-btn" (click)="clearChat()">+ New Chat</button>
 
-      <!-- Tools Section -->
-      <div>
-        <h3 class="text-[11px] uppercase tracking-widest text-dark-400 font-semibold mb-3 px-1">Agent Tools</h3>
-        <div class="space-y-2">
-          <div class="glass-light rounded-xl p-3 group hover:border-neon-blue/30 transition-all duration-200 cursor-default">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-neon-blue/10 flex items-center justify-center">
-                <span class="text-base">⚡</span>
-              </div>
-              <div>
-                <p class="text-sm font-medium text-dark-100">Code Interpreter</p>
-                <p class="text-[11px] text-dark-400">Execute Python code</p>
-              </div>
-            </div>
-          </div>
-          <div class="glass-light rounded-xl p-3 group hover:border-neon-purple/30 transition-all duration-200 cursor-default">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-neon-purple/10 flex items-center justify-center">
-                <span class="text-base">🔍</span>
-              </div>
-              <div>
-                <p class="text-sm font-medium text-dark-100">Web Search</p>
-                <p class="text-[11px] text-dark-400">DuckDuckGo live search</p>
-              </div>
-            </div>
-          </div>
-          <div class="glass-light rounded-xl p-3 group hover:border-neon-pink/30 transition-all duration-200 cursor-default">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-neon-pink/10 flex items-center justify-center">
-                <span class="text-base">🌐</span>
-              </div>
-              <div>
-                <p class="text-sm font-medium text-dark-100">URL Analyzer</p>
-                <p class="text-[11px] text-dark-400">Read any webpage</p>
-              </div>
-            </div>
-          </div>
-          <div class="glass-light rounded-xl p-3 group hover:border-neon-green/30 transition-all duration-200 cursor-default">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-neon-green/10 flex items-center justify-center">
-                <span class="text-base">📚</span>
-              </div>
-              <div>
-                <p class="text-sm font-medium text-dark-100">RAG Knowledge</p>
-                <p class="text-[11px] text-dark-400">Document Q&A</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Upload Documents -->
-      <div>
-        <h3 class="text-[11px] uppercase tracking-widest text-dark-400 font-semibold mb-3 px-1">Knowledge Base</h3>
-        <div class="glass-light rounded-xl p-3 transition-all duration-200"
-          [ngClass]="{'border-accent-500': isDragOver, 'bg-accent-900': isDragOver}"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)">
-          <div class="flex flex-col items-center text-center py-2">
-            <svg class="w-7 h-7 text-dark-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            <p class="text-xs text-dark-300 mb-1">Drag & drop files or</p>
-            <label class="text-xs text-accent-400 hover:text-accent-300 cursor-pointer font-medium">
-              Browse files
-              <input type="file" class="hidden" multiple
-                accept=".txt,.md,.csv,.json,.html"
-                (change)="onFileSelect($event)" />
-            </label>
-            <p class="text-[10px] text-dark-500 mt-1">TXT, MD, CSV, JSON, HTML</p>
-          </div>
-        </div>
-
-        <!-- Uploaded files list -->
-        <div *ngIf="uploadedFiles.length > 0" class="mt-2 space-y-1">
-          <div *ngFor="let f of uploadedFiles"
-            class="flex items-center gap-2 text-[11px] px-2 py-1.5 rounded-lg bg-dark-800/50">
-            <span *ngIf="f.status === 'uploading'" class="w-3 h-3 rounded-full border-2 border-accent-400 border-t-transparent animate-spin"></span>
-            <svg *ngIf="f.status === 'done'" class="w-3 h-3 text-neon-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <svg *ngIf="f.status === 'error'" class="w-3 h-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span class="text-dark-300 truncate flex-1">{{ f.name }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Status Section -->
-      <div>
-        <h3 class="text-[11px] uppercase tracking-widest text-dark-400 font-semibold mb-3 px-1">Status</h3>
-        <div class="glass-light rounded-xl p-3 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-dark-300">Streaming</span>
-            <button (click)="toggleStreaming()" 
-              class="relative w-9 h-5 rounded-full transition-colors duration-200"
-              [class]="useStreaming ? 'bg-accent-500' : 'bg-dark-500'">
-              <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
-                [style.transform]="useStreaming ? 'translateX(16px)' : 'translateX(0)'"></span>
-            </button>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-dark-300">WebSocket</span>
-            <div class="flex items-center gap-1.5">
-              <div class="w-2 h-2 rounded-full" 
-                [class]="wsConnected ? 'bg-neon-green animate-pulse-slow' : 'bg-red-400'"></div>
-              <span class="text-[11px] mono" [class]="wsConnected ? 'text-neon-green' : 'text-red-400'">
-                {{ wsConnected ? 'Connected' : 'Disconnected' }}
-              </span>
-            </div>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-dark-300">Messages</span>
-            <span class="text-[11px] mono text-dark-200">{{ messages.length }}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-dark-300">Documents</span>
-            <span class="text-[11px] mono text-dark-200">{{ uploadedFiles.length }}</span>
-          </div>
-        </div>
-      </div>
+    <div class="menu-list">
+      <div class="menu-item active">Dashboard operativo</div>
+      <div class="menu-item">Chat en tiempo real</div>
+      <div class="menu-item">Upload y RAG</div>
     </div>
 
-    <!-- Bottom Actions -->
-    <div class="p-4 border-t border-dark-600/20">
-      <button (click)="clearChat()" 
-        class="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-dark-300 hover:text-white glass-light hover:border-red-500/30 transition-all duration-200 flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-        </svg>
-        Clear conversation
-      </button>
+    <div class="left-spacer"></div>
+
+    <div class="profile-block">
+      <div class="avatar">AC</div>
+      <div>
+        <p class="name">Alex Chen</p>
+        <p class="plan">Premium Plan</p>
+      </div>
     </div>
   </aside>
 
-  <!-- ═══ MAIN CHAT AREA ═══ -->
-  <main class="flex-1 flex flex-col min-w-0">
-
-    <!-- Top Bar -->
-    <header class="h-14 glass border-b border-dark-600/20 flex items-center px-6 flex-shrink-0">
-      <div class="flex items-center gap-2">
-        <div class="w-2 h-2 rounded-full bg-accent-500 animate-pulse-slow"></div>
-        <span class="text-sm font-medium text-dark-200">New Conversation</span>
+  <main class="chat-stage">
+    <header class="stage-header">
+      <div class="status-inline">
+        <span class="dot" [class.connected]="wsConnected"></span>
+        <span>Connected: {{ wsConnected ? 'WebSocket Active' : 'Disconnected' }}</span>
       </div>
-      <div class="ml-auto flex items-center gap-3">
-        <span class="text-[11px] mono text-dark-400 bg-dark-700/50 px-2.5 py-1 rounded-md">
-          GitHub Models &bull; {{ modelName }}
-        </span>
-      </div>
+      <div class="model-pill">{{ modelName }}</div>
     </header>
 
-    <div *ngIf="uiNotice" class="px-6 pt-3">
-      <div class="max-w-3xl mx-auto rounded-xl px-4 py-2 text-xs border"
-        [ngClass]="uiNotice.tone === 'error' ? 'bg-red-500/10 border-red-400/30 text-red-300' : 'bg-neon-green/10 border-neon-green/30 text-neon-green'">
-        {{ uiNotice.text }}
-      </div>
+    <div *ngIf="uiNotice" class="notice-banner" [class.error]="uiNotice.tone === 'error'">
+      {{ uiNotice.text }}
     </div>
 
-    <!-- Messages Area -->
-    <div class="flex-1 overflow-y-auto" #messagesContainer>
-      <div class="max-w-3xl mx-auto px-6 py-8 space-y-1">
+    <section class="messages-wrap" #messagesContainer>
+      <div *ngIf="messages.length === 0" class="empty-state">
+        <h2>Asistente IA listo para operar</h2>
+        <p>Funciones activas: chat, streaming, tools y carga de documentos.</p>
+        <div class="quick-grid">
+          <button (click)="quickMessage('Analyze memory leaks in the websocket pipeline')">Analyze memory leaks</button>
+          <button (click)="quickMessage('Audit security headers in backend responses')">Audit security headers</button>
+          <button (click)="quickMessage('Trace event propagation in chat flow')">Trace event propagation</button>
+        </div>
+      </div>
 
-        <!-- Empty State -->
-        <div *ngIf="messages.length === 0" class="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
-          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent-500/20 to-neon-cyan/20 flex items-center justify-center mb-6 shadow-glow-md">
-            <svg class="w-10 h-10 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-            </svg>
-          </div>
-          <h2 class="text-xl font-semibold text-white mb-2">How can I help you?</h2>
-          <p class="text-sm text-dark-400 mb-8 text-center max-w-md">
-            An AI agent with Code Interpreter, Web Search, URL Analyzer, and RAG Knowledge Base. Try something.
-          </p>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-2xl">
-            <button (click)="quickMessage('Write Python code to generate the first 20 Fibonacci numbers')"
-              class="glass-light rounded-xl p-3.5 text-left hover:border-neon-blue/30 transition-all group">
-              <p class="text-xs font-semibold text-neon-blue mb-1">⚡ Code</p>
-              <p class="text-[11px] text-dark-400 group-hover:text-dark-300">"Fibonacci numbers"</p>
-            </button>
-            <button (click)="quickMessage('Search the web for the latest AI breakthroughs in 2026')" 
-              class="glass-light rounded-xl p-3.5 text-left hover:border-neon-purple/30 transition-all group">
-              <p class="text-xs font-semibold text-neon-purple mb-1">🔍 Search</p>
-              <p class="text-[11px] text-dark-400 group-hover:text-dark-300">"AI breakthroughs 2026"</p>
-            </button>
-            <button (click)="quickMessage('Analyze this URL: https://en.wikipedia.org/wiki/Artificial_intelligence')"
-              class="glass-light rounded-xl p-3.5 text-left hover:border-neon-pink/30 transition-all group">
-              <p class="text-xs font-semibold text-neon-pink mb-1">🌐 URL</p>
-              <p class="text-[11px] text-dark-400 group-hover:text-dark-300">"Read Wikipedia AI"</p>
-            </button>
-            <button (click)="quickMessage('What documents are in the knowledge base?')" 
-              class="glass-light rounded-xl p-3.5 text-left hover:border-neon-green/30 transition-all group">
-              <p class="text-xs font-semibold text-neon-green mb-1">📚 RAG</p>
-              <p class="text-[11px] text-dark-400 group-hover:text-dark-300">"What's in the KB?"</p>
-            </button>
+      <ng-container *ngFor="let message of messages">
+        <div *ngIf="message.role === 'user'" class="msg-row user">
+          <div class="msg-bubble user-bubble">
+            <p>{{ message.content }}</p>
+            <span class="time">{{ message.timestamp | date:'HH:mm' }}</span>
           </div>
         </div>
 
-        <!-- Messages -->
-        <ng-container *ngFor="let message of messages; let i = index">
-          <!-- User Message -->
-          <div *ngIf="message.role === 'user'" class="flex justify-end mb-4 animate-slide-up">
-            <div class="max-w-xl">
-              <div class="bg-accent-600/90 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-lg">
-                <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
-              </div>
-              <p class="text-[10px] text-dark-500 mt-1 text-right mr-1">{{ message.timestamp | date:'HH:mm' }}</p>
-            </div>
-          </div>
+        <div *ngIf="message.role === 'assistant'" class="msg-row assistant">
+          <div class="assistant-avatar">AI</div>
+          <div class="msg-bubble assistant-bubble">
+            <div class="message-content" [innerHTML]="message.content"></div>
 
-          <!-- Assistant Message -->
-          <div *ngIf="message.role === 'assistant'" class="flex justify-start mb-4 animate-slide-up">
-            <div class="flex gap-3 max-w-2xl">
-              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500/20 to-neon-cyan/20 flex items-center justify-center flex-shrink-0 mt-1">
-                <svg class="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                </svg>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="glass-light rounded-2xl rounded-tl-md px-4 py-3">
-                  <div class="text-sm leading-relaxed text-dark-100 whitespace-pre-wrap break-words message-content" [innerHTML]="message.content"></div>
+            <div *ngIf="message.toolCalls && message.toolCalls.length > 0" class="meta-list">
+              <details>
+                <summary>{{ message.toolCalls.length }} tool{{ message.toolCalls.length > 1 ? 's' : '' }} used</summary>
+                <div class="tool-line" *ngFor="let tool of message.toolCalls">
+                  <span>{{ tool.tool }}</span>
+                  <span *ngIf="tool.input">{{ tool.input | json }}</span>
                 </div>
-                
-                <!-- Tool Calls -->
-                <div *ngIf="message.toolCalls && message.toolCalls.length > 0" class="mt-2 ml-1">
-                  <details class="group">
-                    <summary class="text-[11px] text-dark-400 cursor-pointer hover:text-accent-400 transition flex items-center gap-1">
-                      <svg class="w-3 h-3 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                      {{ message.toolCalls.length }} tool{{ message.toolCalls.length > 1 ? 's' : '' }} used
-                    </summary>
-                    <div class="mt-1.5 space-y-1">
-                      <div *ngFor="let tool of message.toolCalls" 
-                        class="flex items-center gap-2 text-[11px] text-dark-400 bg-dark-800/50 rounded-lg px-2.5 py-1.5 mono">
-                        <span class="text-accent-400">→</span>
-                        <span class="text-dark-200">{{ tool.tool }}</span>
-                        <span *ngIf="tool.input" class="text-dark-500 truncate">{{ tool.input | json }}</span>
-                      </div>
-                    </div>
-                  </details>
-                </div>
-
-                <!-- Sources -->
-                <div *ngIf="message.sources && message.sources.length > 0" class="mt-1.5 ml-1">
-                  <div class="flex items-center gap-1.5 text-[11px] text-dark-400">
-                    <svg class="w-3 h-3 text-neon-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-1.818l4.5-4.5a4.5 4.5 0 00-6.364-6.364l-1.757 1.757" />
-                    </svg>
-                    {{ message.sources.join(' · ') }}
-                  </div>
-                </div>
-
-                <p class="text-[10px] text-dark-500 mt-1 ml-1">{{ message.timestamp | date:'HH:mm' }}</p>
-              </div>
+              </details>
             </div>
-          </div>
-        </ng-container>
 
-        <!-- Typing Indicator -->
-        <div *ngIf="isLoading" class="flex justify-start mb-4 animate-fade-in">
-          <div class="flex gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500/20 to-neon-cyan/20 flex items-center justify-center flex-shrink-0 mt-1">
-              <svg class="w-4 h-4 text-accent-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-              </svg>
+            <div *ngIf="message.sources && message.sources.length > 0" class="sources">
+              {{ message.sources.join(' · ') }}
             </div>
-            <div class="glass-light rounded-2xl rounded-tl-md px-4 py-3">
-              <div class="flex items-center gap-1.5">
-                <div class="w-1.5 h-1.5 rounded-full bg-accent-400 animate-typing" style="animation-delay: 0s"></div>
-                <div class="w-1.5 h-1.5 rounded-full bg-accent-400 animate-typing" style="animation-delay: 0.2s"></div>
-                <div class="w-1.5 h-1.5 rounded-full bg-accent-400 animate-typing" style="animation-delay: 0.4s"></div>
-              </div>
-            </div>
+
+            <span class="time">{{ message.timestamp | date:'HH:mm' }}</span>
           </div>
         </div>
+      </ng-container>
 
+      <div *ngIf="isLoading" class="msg-row assistant">
+        <div class="assistant-avatar pulse">AI</div>
+        <div class="msg-bubble assistant-bubble typing">Thinking...</div>
       </div>
-    </div>
+    </section>
 
-    <!-- ═══ INPUT AREA ═══ -->
-    <div class="flex-shrink-0 p-4 pb-6">
-      <div class="max-w-3xl mx-auto">
-        <form (submit)="sendMessage()" class="relative">
-          <div class="glass rounded-2xl shadow-glass flex items-end overflow-hidden transition-all duration-200 focus-within:border-accent-500/40 focus-within:shadow-glow-sm">
-            <input
-              [(ngModel)]="currentMessage"
-              name="message"
-              type="text"
-              placeholder="Ask anything — code, search, analyze URLs, query documents..."
-              class="flex-1 bg-transparent px-5 py-4 text-sm text-white placeholder-dark-400 focus:outline-none"
-              [disabled]="isLoading"
-              (keydown.enter)="sendMessage()"
-              autocomplete="off"
-            />
-            <button
-              type="submit"
-              class="m-2 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
-              [class]="!isLoading && currentMessage.trim() ? 'bg-accent-500 hover:bg-accent-400 text-dark-900 shadow-glow-sm' : 'bg-dark-600/50 text-dark-400 cursor-not-allowed'"
-              [disabled]="isLoading || !currentMessage.trim()">
-              <svg *ngIf="!isLoading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-              </svg>
-              <svg *ngIf="isLoading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </button>
-          </div>
-          <p class="text-[10px] text-dark-500 text-center mt-2">
-            4 tools &bull; LangChain Agent &bull; Free tier via GitHub Models
-          </p>
-        </form>
-      </div>
-    </div>
-
+    <footer class="composer-wrap">
+      <form (submit)="sendMessage()" class="composer">
+        <input
+          [(ngModel)]="currentMessage"
+          name="message"
+          type="text"
+          placeholder="Send a message to the agent..."
+          [disabled]="isLoading"
+          autocomplete="off"
+        />
+        <button
+          type="submit"
+          [disabled]="isLoading || !currentMessage.trim()"
+        >
+          {{ isLoading ? '...' : 'Send' }}
+        </button>
+      </form>
+      <p class="composer-hint">4 tools • LangChain Agent • RAG + WebSocket Streaming</p>
+    </footer>
   </main>
+
+  <aside class="right-panel">
+    <section class="panel-card">
+      <h3>Available Tools</h3>
+      <div class="tool-item"><span>Code Interpreter</span></div>
+      <div class="tool-item"><span>Web Search</span></div>
+      <div class="tool-item"><span>URL Analyzer</span></div>
+      <div class="tool-item"><span>RAG Knowledge</span></div>
+    </section>
+
+    <section class="panel-card">
+      <h3>Document Pipeline</h3>
+      <div class="upload-zone"
+        [class.drag-over]="isDragOver"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
+        <p>Drop txt, md, csv, or json</p>
+        <label>
+          upload_file
+          <input type="file" multiple accept=".txt,.md,.csv,.json,.html" (change)="onFileSelect($event)" />
+        </label>
+      </div>
+      <div class="upload-list" *ngIf="uploadedFiles.length > 0">
+        <div class="upload-item" *ngFor="let f of uploadedFiles">
+          <span>{{ f.name }}</span>
+          <span class="state" [class.done]="f.status === 'done'" [class.error]="f.status === 'error'">{{ f.status }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-card">
+      <h3>Status & Controls</h3>
+      <div class="status-row">
+        <span>Streaming</span>
+        <button class="toggle" [class.on]="useStreaming" (click)="toggleStreaming()">
+          <span></span>
+        </button>
+      </div>
+      <div class="status-row"><span>WebSocket</span><span>{{ wsConnected ? 'Connected' : 'Disconnected' }}</span></div>
+      <div class="status-row"><span>Messages</span><span>{{ messages.length }}</span></div>
+      <div class="status-row"><span>Documents</span><span>{{ uploadedFiles.length }}</span></div>
+    </section>
+  </aside>
 </div>
