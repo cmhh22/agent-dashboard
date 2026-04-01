@@ -41,14 +41,19 @@ class RAGTool(BaseTool):
     rag_service: Any = Field(default=None, exclude=True)
     
     def _run(self, query: str) -> str:
-        """Execute the RAG tool (sync — delegates to thread)."""
+        """Execute the RAG tool (sync — calls vector store directly)."""
         try:
-            results = asyncio.get_event_loop().run_until_complete(
-                asyncio.to_thread(self._sync_search, query)
-            ) if not asyncio.get_event_loop().is_running() else self._sync_search(query)
-
+            if self.rag_service is None:
+                return (
+                    "No documents have been uploaded yet. "
+                    "Please upload a document using the sidebar, then retry."
+                )
+            results = self._sync_search(query)
             if not results:
-                return "No relevant information found in the knowledge base."
+                return (
+                    "No relevant information found in the uploaded documents. "
+                    "Make sure the documents have been uploaded and contain relevant content."
+                )
             return _format_results(results)
         except Exception as e:
             logger.error(f"RAG tool error: {str(e)}")
@@ -58,7 +63,9 @@ class RAGTool(BaseTool):
         """Perform a synchronous search using the vector store directly."""
         if self.rag_service is None:
             return []
-        vs = self.rag_service.vector_store
+        vs = getattr(self.rag_service, "vector_store", None)
+        if vs is None:
+            return []
         results = vs.similarity_search_with_score(query, k=5)
         return [
             {"content": doc.page_content, "metadata": doc.metadata, "score": float(score)}

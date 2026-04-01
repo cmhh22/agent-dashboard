@@ -30,10 +30,12 @@ Guidelines:
 - For math or calculations, use the Code Interpreter (write Python).
 - For current events or time-sensitive facts (sports results, race winners, market moves, breaking news), use Web Search before answering.
 - When the user shares a URL, use URL Analyzer to read it.
+- Document questions: When the user asks to summarize, analyze, review, or retrieve information from uploaded documents — ALWAYS call rag_tool first. Use queries like "summarize all documents" or the specific topic they mention.
+- If the user says "summarize my documents", "what do my files say", "what did I upload", "analyze the document", or anything about uploaded/shared files — call rag_tool immediately.
 - Cite sources when using RAG. Format your answers with clear structure.
 - Be concise but thorough.
 - Response format: plain text only. Do not use markdown bold/italics, markdown links, or decorative sections.
-- Put the direct answer first, then optionally add a single line that starts with "Sources:" followed by URLs.
+- Put the direct answer first, then optionally add a single line that starts with "Sources:" followed by the document name or URL.
 - Avoid generic closing phrases like "let me know if you need anything else" unless the user asks for follow-up."""
 
 _MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
