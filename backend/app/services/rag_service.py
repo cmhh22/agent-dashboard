@@ -11,7 +11,10 @@ try:
     from langchain_chroma import Chroma
 except ImportError:  # fallback for older environments
     from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+try:
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+except ImportError:  # fallback for older environments
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
 from app.config import settings

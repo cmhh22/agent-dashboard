@@ -10,6 +10,7 @@ websockets>=12.0
 langchain>=0.1.6,<0.3.0
 langchain-openai>=0.0.5,<0.3.0
 langchain-community>=0.0.20,<0.3.0
+langchain-text-splitters>=0.0.1,<0.3.0
 openai>=1.12.0,<2.0.0
 
 # Vector Database and RAG
@@ -22,6 +23,8 @@ ragas>=0.1.4,<0.2.0
 pydantic>=2.6.0,<3.0.0
 pydantic-settings>=2.1.0
 python-dotenv>=1.0.1
+pypdf>=4.2.0,<6.0.0
+python-docx>=1.1.0,<2.0.0
 
 # Utilities
 aiohttp>=3.9.3
@@ -33,7 +36,7 @@ python-dateutil>=2.8.2
 redis>=5.0.1
 
 # Search and Tools
-duckduckgo-search>=4.1.1,<8.0.0
+ddgs>=9.0.0
 wikipedia>=1.4.0
 nest-asyncio>=1.6.0
 

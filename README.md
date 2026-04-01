@@ -19,8 +19,7 @@ Multi-agent AI dashboard with advanced RAG implementation, real-time WebSocket s
 agent-dashboard/
 ├── backend/          # FastAPI + LangChain + RAG
 ├── frontend/         # Angular 17 application
-├── docker/           # Docker configurations
-└── docs/             # Documentation
+└── docker/           # Docker configurations
 ```
 
 ## 🚀 Quick Start
@@ -137,7 +136,7 @@ ng test
 
 ## 📦 Deployment
 
-Refer to [DEPLOYMENT.md](docs/DEPLOYMENT.md) for production deployment instructions.
+Use `docker-compose.yml` and the production `frontend/nginx.conf` setup for deployment.
 
 ## 📄 License
 
@@ -151,7 +150,7 @@ Carlos M. Hernández Hernández
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details.
+Contributions are welcome via issues and pull requests.
 
 ---
 

@@ -1,28 +1,69 @@
 <div class="dashboard-shell">
-  <aside class="left-sidebar">
+  <aside class="ops-sidebar">
     <div class="brand-block">
-      <div class="brand-icon">◼</div>
+      <div class="brand-icon">AO</div>
       <div>
-        <h1>terminal</h1>
-        <p>System Architect</p>
+        <h1>Agent Ops Center</h1>
+        <p>Mission Control for AI Workflows</p>
       </div>
     </div>
 
-    <button class="new-chat-btn" (click)="clearChat()">+ New Chat</button>
+    <button class="new-chat-btn" (click)="clearChat()">+ New Mission</button>
 
-    <div class="menu-list">
-      <div class="menu-item active">Dashboard operativo</div>
-      <div class="menu-item">Chat en tiempo real</div>
-      <div class="menu-item">Upload y RAG</div>
-    </div>
+    <section class="panel-card mission-card">
+      <h3>Mission Objective</h3>
+      <p>Centralize conversations, execute tools, and operate the knowledge base from one unified flow.</p>
+    </section>
+
+    <section class="panel-card">
+      <h3>Tool Stack</h3>
+      <div class="tool-item"><span>Code Interpreter</span></div>
+      <div class="tool-item"><span>Web Search</span></div>
+      <div class="tool-item"><span>URL Analyzer</span></div>
+      <div class="tool-item"><span>RAG Knowledge</span></div>
+    </section>
+
+    <section class="panel-card">
+      <h3>Document Pipeline</h3>
+      <div
+        class="upload-zone"
+        [class.drag-over]="isDragOver"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
+        <p>Drop txt, md, csv, json, pdf, or docx</p>
+        <label>
+          upload_file
+          <input type="file" multiple accept=".txt,.md,.csv,.json,.html,.pdf,.docx" (change)="onFileSelect($event)" />
+        </label>
+      </div>
+      <div class="upload-list" *ngIf="uploadedFiles.length > 0">
+        <div class="upload-item" *ngFor="let f of uploadedFiles">
+          <span>{{ f.name }}</span>
+          <span class="state" [class.done]="f.status === 'done'" [class.error]="f.status === 'error'">{{ f.status }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-card status-card">
+      <h3>Run Controls</h3>
+      <div class="status-row">
+        <span>Streaming</span>
+        <button class="toggle" [class.on]="useStreaming" (click)="toggleStreaming()">
+          <span></span>
+        </button>
+      </div>
+      <div class="status-row"><span>Messages</span><span>{{ messages.length }}</span></div>
+      <div class="status-row"><span>Documents</span><span>{{ uploadedFiles.length }}</span></div>
+    </section>
 
     <div class="left-spacer"></div>
 
     <div class="profile-block">
-      <div class="avatar">AC</div>
+      <div class="avatar">CM</div>
       <div>
-        <p class="name">Alex Chen</p>
-        <p class="plan">Premium Plan</p>
+        <p class="name">Carlos M</p>
+        <p class="plan">Agent Commander</p>
       </div>
     </div>
   </aside>
@@ -31,7 +72,7 @@
     <header class="stage-header">
       <div class="status-inline">
         <span class="dot" [class.connected]="wsConnected"></span>
-        <span>Connected: {{ wsConnected ? 'WebSocket Active' : 'Disconnected' }}</span>
+        <span>{{ wsConnected ? 'Live connection active' : 'Connection unavailable' }}</span>
       </div>
       <div class="model-pill">{{ modelName }}</div>
     </header>
@@ -42,16 +83,16 @@
 
     <section class="messages-wrap" #messagesContainer>
       <div *ngIf="messages.length === 0" class="empty-state">
-        <h2>Asistente IA listo para operar</h2>
-        <p>Funciones activas: chat, streaming, tools y carga de documentos.</p>
+        <h2>AI Agent ready to execute your objectives</h2>
+        <p>Ask questions, upload context, and get answers with tools and real-time RAG.</p>
         <div class="quick-grid">
-          <button (click)="quickMessage('Analyze memory leaks in the websocket pipeline')">Analyze memory leaks</button>
-          <button (click)="quickMessage('Audit security headers in backend responses')">Audit security headers</button>
-          <button (click)="quickMessage('Trace event propagation in chat flow')">Trace event propagation</button>
+          <button (click)="quickMessage('Analyze bottlenecks in the messaging pipeline')">Analyze pipeline</button>
+          <button (click)="quickMessage('Audit security headers in backend responses')">Audit security</button>
+          <button (click)="quickMessage('Summarize uploaded documents and create an action plan')">Summarize documents</button>
         </div>
       </div>
 
-      <ng-container *ngFor="let message of messages">
+      <ng-container *ngFor="let message of messages; let i = index">
         <div *ngIf="message.role === 'user'" class="msg-row user">
           <div class="msg-bubble user-bubble">
             <p>{{ message.content }}</p>
@@ -62,7 +103,10 @@
         <div *ngIf="message.role === 'assistant'" class="msg-row assistant">
           <div class="assistant-avatar">AI</div>
           <div class="msg-bubble assistant-bubble">
-            <div class="message-content" [innerHTML]="message.content"></div>
+            <div *ngIf="message.content; else thinkingTemplate" class="message-content" [innerHTML]="message.content"></div>
+            <ng-template #thinkingTemplate>
+              <div class="typing" *ngIf="isLoading && i === messages.length - 1">Thinking...</div>
+            </ng-template>
 
             <div *ngIf="message.toolCalls && message.toolCalls.length > 0" class="meta-list">
               <details>
@@ -78,15 +122,10 @@
               {{ message.sources.join(' · ') }}
             </div>
 
-            <span class="time">{{ message.timestamp | date:'HH:mm' }}</span>
+            <span class="time" *ngIf="message.content || !isLoading || i !== messages.length - 1">{{ message.timestamp | date:'HH:mm' }}</span>
           </div>
         </div>
       </ng-container>
-
-      <div *ngIf="isLoading" class="msg-row assistant">
-        <div class="assistant-avatar pulse">AI</div>
-        <div class="msg-bubble assistant-bubble typing">Thinking...</div>
-      </div>
     </section>
 
     <footer class="composer-wrap">
@@ -95,62 +134,17 @@
           [(ngModel)]="currentMessage"
           name="message"
           type="text"
-          placeholder="Send a message to the agent..."
+          placeholder="Send a mission or question to the agent..."
           [disabled]="isLoading"
           autocomplete="off"
         />
         <button
           type="submit"
-          [disabled]="isLoading || !currentMessage.trim()"
-        >
+          [disabled]="isLoading || !currentMessage.trim()">
           {{ isLoading ? '...' : 'Send' }}
         </button>
       </form>
-      <p class="composer-hint">4 tools • LangChain Agent • RAG + WebSocket Streaming</p>
+      <p class="composer-hint">4 tools active • LangChain Agent • RAG + Streaming</p>
     </footer>
   </main>
-
-  <aside class="right-panel">
-    <section class="panel-card">
-      <h3>Available Tools</h3>
-      <div class="tool-item"><span>Code Interpreter</span></div>
-      <div class="tool-item"><span>Web Search</span></div>
-      <div class="tool-item"><span>URL Analyzer</span></div>
-      <div class="tool-item"><span>RAG Knowledge</span></div>
-    </section>
-
-    <section class="panel-card">
-      <h3>Document Pipeline</h3>
-      <div class="upload-zone"
-        [class.drag-over]="isDragOver"
-        (dragover)="onDragOver($event)"
-        (dragleave)="onDragLeave($event)"
-        (drop)="onDrop($event)">
-        <p>Drop txt, md, csv, or json</p>
-        <label>
-          upload_file
-          <input type="file" multiple accept=".txt,.md,.csv,.json,.html" (change)="onFileSelect($event)" />
-        </label>
-      </div>
-      <div class="upload-list" *ngIf="uploadedFiles.length > 0">
-        <div class="upload-item" *ngFor="let f of uploadedFiles">
-          <span>{{ f.name }}</span>
-          <span class="state" [class.done]="f.status === 'done'" [class.error]="f.status === 'error'">{{ f.status }}</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel-card">
-      <h3>Status & Controls</h3>
-      <div class="status-row">
-        <span>Streaming</span>
-        <button class="toggle" [class.on]="useStreaming" (click)="toggleStreaming()">
-          <span></span>
-        </button>
-      </div>
-      <div class="status-row"><span>WebSocket</span><span>{{ wsConnected ? 'Connected' : 'Disconnected' }}</span></div>
-      <div class="status-row"><span>Messages</span><span>{{ messages.length }}</span></div>
-      <div class="status-row"><span>Documents</span><span>{{ uploadedFiles.length }}</span></div>
-    </section>
-  </aside>
 </div>

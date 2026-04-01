@@ -30,6 +30,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private wsSubscription?: Subscription;
   private shouldScrollToBottom = false;
   private noticeTimer?: ReturnType<typeof setTimeout>;
+  private pendingAssistantIndex: number | null = null;
 
   @ViewChild('messagesContainer') private messagesContainer?: ElementRef;
 
@@ -94,7 +95,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   sendMessage(): void {
-    if (!this.currentMessage.trim()) return;
+    if (!this.currentMessage.trim() || this.isLoading) return;
 
     const userMessage: ChatMessage = {
       role: 'user',
@@ -103,6 +104,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
 
     this.messages.push(userMessage);
+
+    // Reserve a single assistant bubble for both streaming and non-streaming modes.
+    const assistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: '',
+      timestamp: new Date()
+    };
+    this.messages.push(assistantMessage);
+    this.pendingAssistantIndex = this.messages.length - 1;
+
     this.shouldScrollToBottom = true;
     
     if (this.useStreaming && this.wsService.isConnected()) {
@@ -117,15 +128,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private sendStreamingMessage(message: string): void {
     this.isLoading = true;
     this.currentStreamingMessage = '';
-    
-    // Add placeholder for streaming response
-    const assistantMessage: ChatMessage = {
-      role: 'assistant',
-      content: '',
-      timestamp: new Date()
-    };
-    this.messages.push(assistantMessage);
-    
+
     this.wsService.sendMessage(message);
   }
 
@@ -135,47 +138,77 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.sendMessage(message, this.conversationId).subscribe({
       next: (response) => {
         this.conversationId = response.conversation_id;
-        
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: response.response,
-          timestamp: new Date(),
-          toolCalls: response.tool_calls,
-          sources: response.sources
-        };
-        
-        this.messages.push(assistantMessage);
+
+        const assistantMessage = this.getPendingAssistantMessage();
+        if (assistantMessage) {
+          assistantMessage.content = response.response;
+          assistantMessage.toolCalls = response.tool_calls;
+          assistantMessage.sources = response.sources;
+        } else {
+          this.messages.push({
+            role: 'assistant',
+            content: response.response,
+            timestamp: new Date(),
+            toolCalls: response.tool_calls,
+            sources: response.sources
+          });
+        }
+
+        this.pendingAssistantIndex = null;
         this.isLoading = false;
         this.shouldScrollToBottom = true;
       },
       error: (error) => {
         console.error('Error sending message:', error);
-        this.setNotice('No se pudo enviar el mensaje. Reintenta en unos segundos.', 'error');
+        this.dropEmptyPendingAssistant();
+        this.setNotice('Unable to send message. Please try again in a few seconds.', 'error');
+        this.pendingAssistantIndex = null;
         this.isLoading = false;
       }
     });
   }
 
   private handleWebSocketMessage(message: WebSocketMessage): void {
+    const pendingMessage = this.getPendingAssistantMessage();
     const lastMessage = this.messages[this.messages.length - 1];
     
     switch (message.type) {
       case 'stream':
-        if (lastMessage && lastMessage.role === 'assistant') {
+        if (pendingMessage) {
+          pendingMessage.content += message.content;
+          this.shouldScrollToBottom = true;
+        } else if (lastMessage && lastMessage.role === 'assistant') {
           lastMessage.content += message.content;
           this.shouldScrollToBottom = true;
         }
         break;
       
       case 'complete':
+        this.pendingAssistantIndex = null;
         this.isLoading = false;
         break;
       
       case 'error':
         console.error('WebSocket error:', message.content);
-        this.setNotice(message.content || 'Error en WebSocket. Cambia a modo sin streaming o reconecta.', 'error');
+        this.dropEmptyPendingAssistant();
+        this.setNotice(message.content || 'Real-time connection error. Switch to non-streaming mode or reconnect.', 'error');
+        this.pendingAssistantIndex = null;
         this.isLoading = false;
         break;
+    }
+  }
+
+  private getPendingAssistantMessage(): ChatMessage | null {
+    if (this.pendingAssistantIndex === null) {
+      return null;
+    }
+    return this.messages[this.pendingAssistantIndex] ?? null;
+  }
+
+  private dropEmptyPendingAssistant(): void {
+    const pendingMessage = this.getPendingAssistantMessage();
+    if (pendingMessage && !pendingMessage.content.trim() && this.pendingAssistantIndex !== null) {
+      this.messages.splice(this.pendingAssistantIndex, 1);
     }
   }
 
@@ -183,17 +216,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.useStreaming = !this.useStreaming;
     if (this.useStreaming) {
       this.connectWebSocket();
-      this.setNotice('Streaming activado.', 'success');
+      this.setNotice('Streaming enabled.', 'success');
     } else {
       this.wsSubscription?.unsubscribe();
       this.wsService.disconnect();
-      this.setNotice('Streaming desactivado. Usando modo request/response.', 'success');
+      this.setNotice('Streaming disabled. Using standard response mode.', 'success');
     }
   }
 
   clearChat(): void {
     this.messages = [];
     this.conversationId = undefined;
+    this.pendingAssistantIndex = null;
   }
 
   // ── File Upload ──
@@ -237,12 +271,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.uploadFile(file).subscribe({
       next: () => {
         entry.status = 'done';
-        this.setNotice(`Documento subido: ${file.name}`, 'success');
+        this.setNotice(`Document uploaded: ${file.name}`, 'success');
       },
       error: (err) => {
         console.error('Upload failed:', err);
         entry.status = 'error';
-        this.setNotice(`Falló la subida de ${file.name}`, 'error');
+        this.setNotice(`Upload failed for ${file.name}`, 'error');
       }
     });
   }

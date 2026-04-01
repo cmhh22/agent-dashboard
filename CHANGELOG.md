@@ -73,7 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 agent-dashboard/
 ├── backend/          # FastAPI + LangChain + RAG
 ├── frontend/         # Angular 17 application  
-├── docs/             # Comprehensive documentation
 ├── docker-compose.yml
 └── Configuration files
 ```
