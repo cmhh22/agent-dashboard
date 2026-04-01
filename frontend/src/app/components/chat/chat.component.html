@@ -3,44 +3,48 @@
     <div class="brand-block">
       <div class="brand-icon">AO</div>
       <div>
-        <h1>Agent Ops Center</h1>
-        <p>Mission Control for AI Workflows</p>
+        <h1>Agent Ops</h1>
+        <p>AI Mission Control</p>
       </div>
     </div>
 
     <button class="new-chat-btn" (click)="clearChat()">+ New Mission</button>
 
-    <section class="panel-card mission-card">
-      <h3>Mission Objective</h3>
-      <p>Centralize conversations, execute tools, and operate the knowledge base from one unified flow.</p>
+    <section class="panel-card">
+      <h3>Active Tools</h3>
+      <div class="tool-item"><span class="tool-dot"></span><span>Code Interpreter</span></div>
+      <div class="tool-item"><span class="tool-dot"></span><span>Web Search</span></div>
+      <div class="tool-item"><span class="tool-dot"></span><span>URL Analyzer</span></div>
+      <div class="tool-item"><span class="tool-dot"></span><span>RAG Knowledge</span></div>
     </section>
 
     <section class="panel-card">
-      <h3>Tool Stack</h3>
-      <div class="tool-item"><span>Code Interpreter</span></div>
-      <div class="tool-item"><span>Web Search</span></div>
-      <div class="tool-item"><span>URL Analyzer</span></div>
-      <div class="tool-item"><span>RAG Knowledge</span></div>
-    </section>
-
-    <section class="panel-card">
-      <h3>Document Pipeline</h3>
+      <h3>Documents</h3>
       <div
         class="upload-zone"
         [class.drag-over]="isDragOver"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)">
-        <p>Drop txt, md, csv, json, pdf, or docx</p>
-        <label>
-          upload_file
+        <div class="upload-icon">&#8679;</div>
+        <p>Drop files here or</p>
+        <label class="upload-btn">
+          Browse files
           <input type="file" multiple accept=".txt,.md,.csv,.json,.html,.pdf,.docx" (change)="onFileSelect($event)" />
         </label>
+        <span class="upload-hint">txt · md · csv · json · pdf · docx</span>
       </div>
       <div class="upload-list" *ngIf="uploadedFiles.length > 0">
         <div class="upload-item" *ngFor="let f of uploadedFiles">
-          <span>{{ f.name }}</span>
-          <span class="state" [class.done]="f.status === 'done'" [class.error]="f.status === 'error'">{{ f.status }}</span>
+          <span class="file-name">{{ f.name }}</span>
+          <span class="state"
+            [class.done]="f.status === 'done'"
+            [class.error]="f.status === 'error'"
+            [class.uploading]="f.status === 'uploading'">
+            <span *ngIf="f.status === 'uploading'" class="spinner-sm"></span>
+            <span *ngIf="f.status === 'done'">&#10003;</span>
+            <span *ngIf="f.status === 'error'">&#10007;</span>
+          </span>
         </div>
       </div>
     </section>
@@ -49,12 +53,19 @@
       <h3>Run Controls</h3>
       <div class="status-row">
         <span>Streaming</span>
-        <button class="toggle" [class.on]="useStreaming" (click)="toggleStreaming()">
+        <button class="toggle" [class.on]="useStreaming" (click)="toggleStreaming()"
+          role="switch" [attr.aria-checked]="useStreaming" [attr.aria-label]="useStreaming ? 'Disable streaming' : 'Enable streaming'">
           <span></span>
         </button>
       </div>
-      <div class="status-row"><span>Messages</span><span>{{ messages.length }}</span></div>
-      <div class="status-row"><span>Documents</span><span>{{ uploadedFiles.length }}</span></div>
+      <div class="status-row">
+        <span>Mode</span>
+        <span class="mode-badge" [class.stream]="useStreaming">
+          {{ useStreaming ? '⚡ Stream' : '↺ Standard' }}
+        </span>
+      </div>
+      <div class="status-row"><span>Messages</span><span class="stat-val">{{ messages.length }}</span></div>
+      <div class="status-row"><span>Documents</span><span class="stat-val">{{ uploadedFiles.length }}</span></div>
     </section>
 
     <div class="left-spacer"></div>
@@ -72,9 +83,15 @@
     <header class="stage-header">
       <div class="status-inline">
         <span class="dot" [class.connected]="wsConnected"></span>
-        <span>{{ wsConnected ? 'Live connection active' : 'Connection unavailable' }}</span>
+        <span>{{ wsConnected ? 'Connected' : 'Disconnected' }}</span>
       </div>
-      <div class="model-pill">{{ modelName }}</div>
+      <div class="header-pills">
+        <div class="model-pill">{{ modelName }}</div>
+        <div class="stream-pill" [class.active]="useStreaming" [class.live]="useStreaming && isLoading">
+          <span class="stream-dot" *ngIf="useStreaming && isLoading"></span>
+          {{ useStreaming ? '⚡ Streaming' : 'Standard' }}
+        </div>
+      </div>
     </header>
 
     <div *ngIf="uiNotice" class="notice-banner" [class.error]="uiNotice.tone === 'error'">
@@ -83,12 +100,22 @@
 
     <section class="messages-wrap" #messagesContainer>
       <div *ngIf="messages.length === 0" class="empty-state">
-        <h2>AI Agent ready to execute your objectives</h2>
-        <p>Ask questions, upload context, and get answers with tools and real-time RAG.</p>
+        <div class="empty-icon">&#129302;</div>
+        <h2>Agent ready</h2>
+        <p>Ask questions, upload documents, and get answers powered by AI tools and RAG.</p>
         <div class="quick-grid">
-          <button (click)="quickMessage('Analyze bottlenecks in the messaging pipeline')">Analyze pipeline</button>
-          <button (click)="quickMessage('Audit security headers in backend responses')">Audit security</button>
-          <button (click)="quickMessage('Summarize uploaded documents and create an action plan')">Summarize documents</button>
+          <button (click)="quickMessage('Analyze bottlenecks in the messaging pipeline')">
+            <span class="qb-icon">&#9889;</span> Analyze pipeline
+          </button>
+          <button (click)="quickMessage('Audit security headers in backend responses')">
+            <span class="qb-icon">&#128274;</span> Audit security
+          </button>
+          <button (click)="quickMessage('Summarize all uploaded documents')">
+            <span class="qb-icon">&#128196;</span> Summarize docs
+          </button>
+          <button (click)="quickMessage('Search the web for the latest AI news')">
+            <span class="qb-icon">&#127760;</span> Web search
+          </button>
         </div>
       </div>
 
@@ -101,25 +128,27 @@
         </div>
 
         <div *ngIf="message.role === 'assistant'" class="msg-row assistant">
-          <div class="assistant-avatar">AI</div>
+          <div class="assistant-avatar" [class.pulse]="isLoading && i === messages.length - 1">AI</div>
           <div class="msg-bubble assistant-bubble">
             <div *ngIf="message.content; else thinkingTemplate" class="message-content" [innerHTML]="message.content"></div>
             <ng-template #thinkingTemplate>
-              <div class="typing" *ngIf="isLoading && i === messages.length - 1">Thinking...</div>
+              <div class="typing" *ngIf="isLoading && i === messages.length - 1">
+                <span></span><span></span><span></span>
+              </div>
             </ng-template>
 
             <div *ngIf="message.toolCalls && message.toolCalls.length > 0" class="meta-list">
               <details>
-                <summary>{{ message.toolCalls.length }} tool{{ message.toolCalls.length > 1 ? 's' : '' }} used</summary>
+                <summary>&#128296; {{ message.toolCalls.length }} tool{{ message.toolCalls.length > 1 ? 's' : '' }} used</summary>
                 <div class="tool-line" *ngFor="let tool of message.toolCalls">
-                  <span>{{ tool.tool }}</span>
-                  <span *ngIf="tool.input">{{ tool.input | json }}</span>
+                  <span class="tool-name">{{ tool.tool }}</span>
+                  <span *ngIf="tool.input" class="tool-args">{{ tool.input | json }}</span>
                 </div>
               </details>
             </div>
 
             <div *ngIf="message.sources && message.sources.length > 0" class="sources">
-              {{ message.sources.join(' · ') }}
+              <span class="sources-label">Sources:</span> {{ message.sources.join(' · ') }}
             </div>
 
             <span class="time" *ngIf="message.content || !isLoading || i !== messages.length - 1">{{ message.timestamp | date:'HH:mm' }}</span>
@@ -134,17 +163,16 @@
           [(ngModel)]="currentMessage"
           name="message"
           type="text"
-          placeholder="Send a mission or question to the agent..."
+          placeholder="Ask the agent anything..."
           [disabled]="isLoading"
           autocomplete="off"
         />
-        <button
-          type="submit"
-          [disabled]="isLoading || !currentMessage.trim()">
-          {{ isLoading ? '...' : 'Send' }}
+        <button type="submit" [disabled]="isLoading || !currentMessage.trim()">
+          <span *ngIf="!isLoading">&#10148;</span>
+          <span *ngIf="isLoading" class="loading-dots"><span></span><span></span><span></span></span>
         </button>
       </form>
-      <p class="composer-hint">4 tools active • LangChain Agent • RAG + Streaming</p>
+      <p class="composer-hint">4 tools · {{ modelName }} · {{ useStreaming ? 'Streaming enabled' : 'Standard mode' }}</p>
     </footer>
   </main>
 </div>
