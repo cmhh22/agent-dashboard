@@ -43,9 +43,7 @@ class RAGTool(BaseTool):
     def _run(self, query: str) -> str:
         """Execute the RAG tool (sync — delegates to thread)."""
         try:
-            results = asyncio.get_event_loop().run_until_complete(
-                asyncio.to_thread(self._sync_search, query)
-            ) if not asyncio.get_event_loop().is_running() else self._sync_search(query)
+            results = self._sync_search(query)
 
             if not results:
                 return "No relevant information found in the knowledge base."
@@ -55,15 +53,19 @@ class RAGTool(BaseTool):
             return f"Error retrieving information: {str(e)}"
 
     def _sync_search(self, query: str):
-        """Perform a synchronous search using the vector store directly."""
+        """Perform a synchronous search using the async RAG service safely."""
         if self.rag_service is None:
             return []
-        vs = self.rag_service.vector_store
-        results = vs.similarity_search_with_score(query, k=5)
-        return [
-            {"content": doc.page_content, "metadata": doc.metadata, "score": float(score)}
-            for doc, score in results
-        ]
+
+        try:
+            return asyncio.run(self.rag_service.search(query, top_k=5))
+        except RuntimeError:
+            # Fallback when asyncio.run cannot be used from an active event loop.
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(self.rag_service.search(query, top_k=5))
+            finally:
+                loop.close()
     
     async def _arun(self, query: str) -> str:
         """Async version of the RAG tool."""

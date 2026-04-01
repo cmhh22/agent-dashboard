@@ -28,7 +28,11 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
     log_level: str = "info"
-    cors_origins: List[str] = ["http://localhost:4200"]
+    cors_origins: List[str] = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+    ]
+    cors_origin_regex: str = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
     
     # Agent Configuration
     agent_max_iterations: int = 10

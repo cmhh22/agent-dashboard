@@ -16,6 +16,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   messages: ChatMessage[] = [];
   currentMessage = '';
   isLoading = false;
+  isDarkMode = false;
   uiNotice: { text: string; tone: 'error' | 'success' } | null = null;
   useStreaming = true;
   conversationId?: string;
@@ -31,6 +32,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private shouldScrollToBottom = false;
   private noticeTimer?: ReturnType<typeof setTimeout>;
   private pendingAssistantIndex: number | null = null;
+  private readonly allowedUploadExtensions = new Set([
+    '.txt', '.md', '.csv', '.json', '.html', '.pdf', '.docx'
+  ]);
 
   @ViewChild('messagesContainer') private messagesContainer?: ElementRef;
 
@@ -40,6 +44,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   ) {}
 
   ngOnInit(): void {
+    this.initTheme();
     this.connectWebSocket();
   }
 
@@ -81,7 +86,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // Prevent duplicate subscriptions
     this.wsSubscription?.unsubscribe();
     this.wsService.connect();
-    this.wsConnected = true;
+    this.wsConnected = this.wsService.isConnected();
+    setTimeout(() => {
+      this.wsConnected = this.wsService.isConnected();
+    }, 300);
     this.wsSubscription = this.wsService.getMessages().subscribe({
       next: (message: WebSocketMessage) => this.handleWebSocketMessage(message),
       error: () => { this.wsConnected = false; },
@@ -116,8 +124,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.shouldScrollToBottom = true;
     
-    if (this.useStreaming && this.wsService.isConnected()) {
-      this.sendStreamingMessage(this.currentMessage);
+    if (this.useStreaming) {
+      if (!this.wsService.isConnected()) {
+        this.connectWebSocket();
+      }
+
+      if (this.wsService.isConnected()) {
+        this.sendStreamingMessage(this.currentMessage);
+      } else {
+        this.setNotice('Streaming no disponible ahora; enviando en modo estandar para esta respuesta.', 'error');
+        this.sendRegularMessage(this.currentMessage);
+      }
     } else {
       this.sendRegularMessage(this.currentMessage);
     }
@@ -161,7 +178,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error) => {
         console.error('Error sending message:', error);
         this.dropEmptyPendingAssistant();
-        this.setNotice('Unable to send message. Please try again in a few seconds.', 'error');
+        const detail = this.extractUploadErrorMessage(error);
+        this.setNotice(`Unable to send message: ${detail}`, 'error');
         this.pendingAssistantIndex = null;
         this.isLoading = false;
       }
@@ -174,6 +192,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     
     switch (message.type) {
       case 'stream':
+        this.wsConnected = true;
         if (pendingMessage) {
           pendingMessage.content += message.content;
           this.shouldScrollToBottom = true;
@@ -216,18 +235,53 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.useStreaming = !this.useStreaming;
     if (this.useStreaming) {
       this.connectWebSocket();
-      this.setNotice('Streaming enabled.', 'success');
+      this.setNotice('Streaming activado: veras la respuesta token por token.', 'success');
     } else {
       this.wsSubscription?.unsubscribe();
       this.wsService.disconnect();
-      this.setNotice('Streaming disabled. Using standard response mode.', 'success');
+      this.wsConnected = false;
+      this.setNotice('Streaming desactivado: recibiras la respuesta completa de una vez.', 'success');
     }
+  }
+
+  get streamModeLabel(): string {
+    return this.useStreaming ? 'Streaming mode' : 'Standard mode';
+  }
+
+  get streamModeHint(): string {
+    return this.useStreaming
+      ? 'Token-by-token live response for faster visual feedback.'
+      : 'Single-shot response (full message at once), usually more stable.';
+  }
+
+  toggleTheme(): void {
+    this.isDarkMode = !this.isDarkMode;
+    localStorage.setItem('agent_dashboard_theme', this.isDarkMode ? 'dark' : 'light');
+  }
+
+  private initTheme(): void {
+    const storedTheme = localStorage.getItem('agent_dashboard_theme');
+    if (storedTheme === 'dark') {
+      this.isDarkMode = true;
+      return;
+    }
+
+    if (storedTheme === 'light') {
+      this.isDarkMode = false;
+      return;
+    }
+
+    this.isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
   clearChat(): void {
     this.messages = [];
     this.conversationId = undefined;
     this.pendingAssistantIndex = null;
+  }
+
+  formatAssistantContent(content: string): string {
+    return (content || '').replace(/\r\n/g, '\n');
   }
 
   // ── File Upload ──
@@ -268,6 +322,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private uploadFile(file: File): void {
     const entry = { name: file.name, status: 'uploading' };
     this.uploadedFiles.push(entry);
+
+    if (!this.isAllowedUploadFile(file)) {
+      entry.status = 'error';
+      this.setNotice(
+        `Unsupported file type for ${file.name}. Allowed: txt, md, csv, json, html, pdf, docx.`,
+        'error'
+      );
+      return;
+    }
+
     this.chatService.uploadFile(file).subscribe({
       next: () => {
         entry.status = 'done';
@@ -276,8 +340,43 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (err) => {
         console.error('Upload failed:', err);
         entry.status = 'error';
-        this.setNotice(`Upload failed for ${file.name}`, 'error');
+        const detail = this.extractUploadErrorMessage(err);
+        this.setNotice(`Upload failed for ${file.name}: ${detail}`, 'error');
       }
     });
+  }
+
+  private isAllowedUploadFile(file: File): boolean {
+    const extension = this.getFileExtension(file.name);
+    return this.allowedUploadExtensions.has(extension);
+  }
+
+  private getFileExtension(fileName: string): string {
+    const dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex < 0) {
+      return '';
+    }
+    return fileName.slice(dotIndex).toLowerCase();
+  }
+
+  private extractUploadErrorMessage(err: any): string {
+    if (err?.status === 0) {
+      return 'Cannot connect to backend. Verify API is running on port 8000.';
+    }
+
+    const detail = err?.error?.detail ?? err?.error?.message ?? err?.message;
+
+    if (Array.isArray(detail)) {
+      const joined = detail.map((item) => String(item)).join('; ').trim();
+      if (joined) {
+        return joined;
+      }
+    }
+
+    if (typeof detail === 'string' && detail.trim()) {
+      return detail.trim();
+    }
+
+    return 'Please verify file format and size (max 10 MB).';
   }
 }

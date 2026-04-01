@@ -1,4 +1,4 @@
-<div class="dashboard-shell">
+<div class="dashboard-shell" [class.dark-mode]="isDarkMode">
   <aside class="ops-sidebar">
     <div class="brand-block">
       <div class="brand-icon">AO</div>
@@ -9,19 +9,6 @@
     </div>
 
     <button class="new-chat-btn" (click)="clearChat()">+ New Mission</button>
-
-    <section class="panel-card mission-card">
-      <h3>Mission Objective</h3>
-      <p>Centralize conversations, execute tools, and operate the knowledge base from one unified flow.</p>
-    </section>
-
-    <section class="panel-card">
-      <h3>Tool Stack</h3>
-      <div class="tool-item"><span>Code Interpreter</span></div>
-      <div class="tool-item"><span>Web Search</span></div>
-      <div class="tool-item"><span>URL Analyzer</span></div>
-      <div class="tool-item"><span>RAG Knowledge</span></div>
-    </section>
 
     <section class="panel-card">
       <h3>Document Pipeline</h3>
@@ -74,8 +61,33 @@
         <span class="dot" [class.connected]="wsConnected"></span>
         <span>{{ wsConnected ? 'Live connection active' : 'Connection unavailable' }}</span>
       </div>
-      <div class="model-pill">{{ modelName }}</div>
+      <div class="header-actions">
+        <div class="mode-pill" [class.streaming]="useStreaming" [class.standard]="!useStreaming">
+          {{ streamModeLabel }}
+        </div>
+        <button class="theme-btn" (click)="toggleTheme()">
+          {{ isDarkMode ? 'Light mode' : 'Dark mode' }}
+        </button>
+        <div class="model-pill">{{ modelName }}</div>
+      </div>
     </header>
+
+    <section class="stage-insight-row">
+      <article class="stage-insight-card mission-card">
+        <h3>Mission Objective</h3>
+        <p>Centralize conversations, execute tools, and operate the knowledge base from one unified flow.</p>
+      </article>
+
+      <article class="stage-insight-card stack-card">
+        <h3>Tool Stack</h3>
+        <div class="stack-list">
+          <span class="stack-pill">Code Interpreter</span>
+          <span class="stack-pill">Web Search</span>
+          <span class="stack-pill">URL Analyzer</span>
+          <span class="stack-pill">RAG Knowledge</span>
+        </div>
+      </article>
+    </section>
 
     <div *ngIf="uiNotice" class="notice-banner" [class.error]="uiNotice.tone === 'error'">
       {{ uiNotice.text }}
@@ -103,24 +115,11 @@
         <div *ngIf="message.role === 'assistant'" class="msg-row assistant">
           <div class="assistant-avatar">AI</div>
           <div class="msg-bubble assistant-bubble">
-            <div *ngIf="message.content; else thinkingTemplate" class="message-content" [innerHTML]="message.content"></div>
+            <div *ngIf="message.content; else thinkingTemplate" class="message-content" [textContent]="formatAssistantContent(message.content)"></div>
             <ng-template #thinkingTemplate>
               <div class="typing" *ngIf="isLoading && i === messages.length - 1">Thinking...</div>
             </ng-template>
-
-            <div *ngIf="message.toolCalls && message.toolCalls.length > 0" class="meta-list">
-              <details>
-                <summary>{{ message.toolCalls.length }} tool{{ message.toolCalls.length > 1 ? 's' : '' }} used</summary>
-                <div class="tool-line" *ngFor="let tool of message.toolCalls">
-                  <span>{{ tool.tool }}</span>
-                  <span *ngIf="tool.input">{{ tool.input | json }}</span>
-                </div>
-              </details>
-            </div>
-
-            <div *ngIf="message.sources && message.sources.length > 0" class="sources">
-              {{ message.sources.join(' · ') }}
-            </div>
+            <div class="stream-cursor" *ngIf="isLoading && useStreaming && i === messages.length - 1 && message.content">▍</div>
 
             <span class="time" *ngIf="message.content || !isLoading || i !== messages.length - 1">{{ message.timestamp | date:'HH:mm' }}</span>
           </div>
@@ -144,7 +143,7 @@
           {{ isLoading ? '...' : 'Send' }}
         </button>
       </form>
-      <p class="composer-hint">4 tools active • LangChain Agent • RAG + Streaming</p>
+      <p class="composer-hint">{{ streamModeHint }}</p>
     </footer>
   </main>
 </div>

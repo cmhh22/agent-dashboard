@@ -2,6 +2,7 @@
 Documents API endpoints.
 """
 import io
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from app.models import DocumentUpload, DocumentResponse
 import logging
@@ -31,10 +32,30 @@ def _get_extension(filename: str | None) -> str:
 
 
 def _extract_text_from_pdf(content: bytes) -> str:
-    reader = PdfReader(io.BytesIO(content))
+    reader = PdfReader(io.BytesIO(content), strict=False)
+
+    if reader.is_encrypted:
+        try:
+            # Try opening user-password-protected PDFs with empty password.
+            if reader.decrypt("") == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Encrypted PDF could not be opened. Please upload an unprotected PDF."
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(
+                status_code=400,
+                detail="Encrypted PDF could not be processed."
+            )
+
     parts = []
     for page in reader.pages:
-        page_text = page.extract_text() or ""
+        try:
+            page_text = page.extract_text() or ""
+        except Exception:
+            page_text = ""
         if page_text.strip():
             parts.append(page_text.strip())
     return "\n\n".join(parts).strip()
@@ -91,9 +112,12 @@ async def upload_document(request: DocumentUpload, app_request: Request):
         rag_service = app_request.app.state.rag_service
         
         # Add document to vector store
+        metadata = dict(request.metadata or {})
+        metadata.setdefault("uploaded_at", datetime.now(timezone.utc).isoformat())
+
         document_id = await rag_service.add_document(
             content=request.content,
-            metadata=request.metadata
+            metadata=metadata
         )
         
         return DocumentResponse(
@@ -144,25 +168,41 @@ async def upload_file(app_request: Request, file: UploadFile = File(...)):
                 detail=f"File too large. Maximum size: {_MAX_FILE_SIZE // (1024*1024)} MB"
             )
 
-        text_content = _extract_text_content(file, content)
-        if not text_content.strip():
-            raise HTTPException(status_code=400, detail="No readable text found in file.")
-        
         # Add document with metadata
         metadata = {
             "source": file.filename,
-            "content_type": file.content_type
+            "content_type": file.content_type,
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
         }
+
+        text_content = _extract_text_content(file, content)
+        downgraded_pdf_ingest = False
+
+        if not text_content.strip():
+            is_pdf = extension == ".pdf" or (file.content_type or "").lower() == "application/pdf"
+            if is_pdf:
+                downgraded_pdf_ingest = True
+                text_content = (
+                    f"PDF file '{file.filename}' was uploaded, but no machine-readable text "
+                    "could be extracted (likely scanned/image-only content)."
+                )
+                metadata["extraction_warning"] = "no_readable_text"
+            else:
+                raise HTTPException(status_code=400, detail="No readable text found in file.")
         
         document_id = await rag_service.add_document(
             content=text_content,
             metadata=metadata
         )
         
+        message = f"File '{file.filename}' uploaded successfully"
+        if downgraded_pdf_ingest:
+            message += " (no readable text detected; OCR-ready PDF is recommended for accurate answers)"
+
         return DocumentResponse(
             document_id=document_id,
             status="success",
-            message=f"File '{file.filename}' uploaded successfully"
+            message=message
         )
         
     except HTTPException:

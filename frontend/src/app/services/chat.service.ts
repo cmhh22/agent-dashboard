@@ -37,7 +37,7 @@ export class ChatService {
       conversation_id: conversationId
     };
     
-    return this.http.post<ChatResponse>(`${this.apiUrl}/api/chat`, request);
+    return this.http.post<ChatResponse>(`${this.apiUrl}/api/chat/`, request);
   }
 
   uploadFile(file: File): Observable<any> {

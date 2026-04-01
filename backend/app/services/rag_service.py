@@ -3,6 +3,7 @@ RAG service with ChromaDB and RAGAS evaluation.
 """
 import asyncio
 import logging
+import uuid
 from typing import List, Dict, Any
 import chromadb
 from chromadb.config import Settings as ChromaSettings
@@ -65,8 +66,137 @@ class RAGService:
             chunk_overlap=settings.chunk_overlap,
             separators=["\n\n", "\n", " ", ""]
         )
+
+        # In-memory fallback store used when vector operations fail or time out.
+        self._fallback_documents: List[Dict[str, Any]] = []
         
         logger.info("RAG service initialized with ChromaDB")
+
+    async def _add_to_fallback(self, content: str, metadata: Dict[str, Any] = None) -> str:
+        """Store document in local fallback memory and return a stable id."""
+        document_id = str(uuid.uuid4())
+        self._fallback_documents.append(
+            {
+                "id": document_id,
+                "content": content,
+                "metadata": metadata or {},
+            }
+        )
+        return document_id
+
+    def _search_fallback(self, query: str, top_k: int) -> List[Dict[str, Any]]:
+        """Simple keyword overlap search over fallback in-memory documents."""
+        lowered_query = (query or "").lower().strip()
+        words = [w for w in lowered_query.split() if w]
+        scored: List[Dict[str, Any]] = []
+
+        for item in self._fallback_documents:
+            content = str(item.get("content", ""))
+            lowered_content = content.lower()
+
+            if lowered_query and lowered_query in lowered_content:
+                score = 0.95
+            elif words:
+                overlap = sum(1 for w in words if w in lowered_content)
+                if overlap == 0:
+                    continue
+                score = min(0.9, 0.5 + (overlap * 0.08))
+            else:
+                score = 0.4
+
+            scored.append(
+                {
+                    "content": content,
+                    "metadata": item.get("metadata", {}),
+                    "score": float(score),
+                }
+            )
+
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored[:top_k]
+
+    async def get_documents_snapshot(
+        self,
+        max_items: int = 50,
+        max_chars_per_item: int = 1200,
+    ) -> List[Dict[str, Any]]:
+        """Return recent document chunks from vector store and fallback memory."""
+        snapshot: List[Dict[str, Any]] = []
+        candidates: List[Dict[str, Any]] = []
+        seen = set()
+
+        try:
+            def _read_collection_payload():
+                collection = self.chroma_client.get_collection(settings.vector_db_collection)
+                return collection.get(include=["documents", "metadatas"])
+
+            payload = await asyncio.wait_for(
+                asyncio.to_thread(_read_collection_payload),
+                timeout=20,
+            )
+
+            documents = payload.get("documents", []) if isinstance(payload, dict) else []
+            metadatas = payload.get("metadatas", []) if isinstance(payload, dict) else []
+
+            for idx, content in enumerate(documents):
+
+                text = str(content or "").strip()
+                if not text:
+                    continue
+
+                metadata = metadatas[idx] if idx < len(metadatas) and isinstance(metadatas[idx], dict) else {}
+                source = str(metadata.get("source", f"Document {idx + 1}"))
+                clipped = text[:max_chars_per_item]
+                candidates.append({
+                    "content": clipped,
+                    "metadata": metadata,
+                    "source": source,
+                    "uploaded_at": str(metadata.get("uploaded_at", "")),
+                    "order_index": idx,
+                })
+        except Exception as exc:
+            logger.warning(f"Could not build vector snapshot, continuing with fallback docs: {exc}")
+
+        for idx, item in enumerate(self._fallback_documents):
+            text = str(item.get("content", "")).strip()
+            if not text:
+                continue
+
+            metadata = item.get("metadata", {}) if isinstance(item.get("metadata", {}), dict) else {}
+            source = str(metadata.get("source", f"Fallback Document {idx + 1}"))
+            clipped = text[:max_chars_per_item]
+            candidates.append({
+                "content": clipped,
+                "metadata": metadata,
+                "source": source,
+                "uploaded_at": str(metadata.get("uploaded_at", "")),
+                "order_index": idx,
+            })
+
+        # Prioritize more recently uploaded chunks using ISO timestamp metadata.
+        candidates.sort(
+            key=lambda item: (item.get("uploaded_at", ""), item.get("order_index", 0)),
+            reverse=True,
+        )
+
+        for item in candidates:
+            if len(snapshot) >= max_items:
+                break
+
+            source = str(item.get("source", "Document"))
+            clipped = str(item.get("content", ""))
+            signature = (source, clipped[:120])
+            if signature in seen:
+                continue
+            seen.add(signature)
+
+            snapshot.append({
+                "content": clipped,
+                "metadata": item.get("metadata", {}),
+                "source": source,
+            })
+
+        return snapshot[:max_items]
     
     async def add_document(self, content: str, metadata: Dict[str, Any] = None) -> str:
         """
@@ -82,6 +212,8 @@ class RAGService:
         try:
             # Split text into chunks
             chunks = self.text_splitter.split_text(content)
+            if not chunks:
+                chunks = [content]
             
             # Create documents with metadata
             documents = [
@@ -89,15 +221,27 @@ class RAGService:
                 for chunk in chunks
             ]
             
-            # Add to vector store (blocking — offload to thread)
-            ids = await asyncio.to_thread(self.vector_store.add_documents, documents)
-            
-            logger.info(f"Added document with {len(chunks)} chunks")
-            return ids[0] if ids else None
+            try:
+                # Add to vector store (blocking — offload to thread) with timeout protection.
+                ids = await asyncio.wait_for(
+                    asyncio.to_thread(self.vector_store.add_documents, documents),
+                    timeout=35,
+                )
+                logger.info(f"Added document with {len(chunks)} chunks")
+                if ids:
+                    return ids[0]
+            except Exception as vector_exc:
+                logger.warning(f"Vector store add failed, falling back to memory store: {vector_exc}")
+
+            fallback_id = await self._add_to_fallback(content=content, metadata=metadata)
+            logger.info("Stored document in fallback memory store")
+            return fallback_id
             
         except Exception as e:
             logger.error(f"Error adding document: {str(e)}")
-            raise
+            fallback_id = await self._add_to_fallback(content=content, metadata=metadata)
+            logger.info("Stored document in fallback memory store after exception")
+            return fallback_id
     
     async def search(self, query: str, top_k: int = None) -> List[Dict[str, Any]]:
         """
@@ -112,21 +256,30 @@ class RAGService:
         """
         try:
             k = top_k or settings.top_k_results
-            results = await asyncio.to_thread(
-                self.vector_store.similarity_search_with_score, query, k=k
-            )
-            
-            return [
-                {
-                    "content": doc.page_content,
-                    "metadata": doc.metadata,
-                    "score": float(score)
-                }
-                for doc, score in results
-            ]
+            try:
+                results = await asyncio.wait_for(
+                    asyncio.to_thread(self.vector_store.similarity_search_with_score, query, k=k),
+                    timeout=20,
+                )
+
+                parsed = [
+                    {
+                        "content": doc.page_content,
+                        "metadata": doc.metadata,
+                        "score": float(score)
+                    }
+                    for doc, score in results
+                ]
+
+                if parsed:
+                    return parsed
+            except Exception as vector_exc:
+                logger.warning(f"Vector store search failed, using fallback memory store: {vector_exc}")
+
+            return self._search_fallback(query=query, top_k=k)
         except Exception as e:
             logger.error(f"Error searching documents: {str(e)}")
-            raise
+            return self._search_fallback(query=query, top_k=top_k or settings.top_k_results)
     
     async def retrieve_context(self, query: str, top_k: int = None) -> str:
         """
@@ -210,8 +363,13 @@ class RAGService:
             )
             return {
                 "document_count": collection.count(),
+                "fallback_document_count": len(self._fallback_documents),
                 "collection_name": settings.vector_db_collection
             }
         except Exception as e:
             logger.error(f"Error getting collection stats: {str(e)}")
-            return {"document_count": 0, "collection_name": settings.vector_db_collection}
+            return {
+                "document_count": 0,
+                "fallback_document_count": len(self._fallback_documents),
+                "collection_name": settings.vector_db_collection,
+            }
