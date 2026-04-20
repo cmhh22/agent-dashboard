@@ -3,6 +3,9 @@ module.exports = {
   content: [
     "./src/**/*.{html,ts}",
   ],
+  safelist: [
+    'hidden',
+  ],
   darkMode: 'class',
   theme: {
     extend: {
