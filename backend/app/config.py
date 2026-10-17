@@ -2,7 +2,8 @@
 Configuration settings for the Agent Dashboard backend.
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+from typing import List, Literal
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -37,6 +38,10 @@ class Settings(BaseSettings):
     # Agent Configuration
     agent_max_iterations: int = 10
     agent_timeout: int = 60
+
+    # Web search (DuckDuckGo remains the keyless default)
+    search_provider: Literal["duckduckgo", "parallel"] = "duckduckgo"
+    search_timeout: float = Field(default=30, gt=0, le=120)
     
     # RAG Configuration
     chunk_size: int = 1000

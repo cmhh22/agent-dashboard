@@ -30,7 +30,7 @@ Use them proactively to give the best possible answer.
 
 Available tools:
 - Code Interpreter: Execute Python code for math, data analysis, algorithms, charts logic, string ops, date calculations — anything computable. Always use print() to show results.
-- Web Search: Search the internet (via DuckDuckGo) for current events, news, facts, documentation.
+- Web Search: Search the internet for current events, news, facts, documentation.
 - URL Analyzer: Fetch and read the content of any URL the user shares or that you find via web search.
 - RAG Knowledge Base: Search the user's uploaded documents for relevant information.
 
@@ -129,7 +129,10 @@ class AgentService:
         if rag_service is not None:
             rag_tool.rag_service = rag_service
         
-        self.web_search_tool = WebSearchTool()
+        self.web_search_tool = WebSearchTool(
+            provider=settings.search_provider,
+            search_timeout=settings.search_timeout,
+        )
         self.rag_service = rag_service
 
         self.tools = [
@@ -424,7 +427,7 @@ class AgentService:
         if not self._needs_fresh_web_context(message):
             return None
 
-        web_results = await asyncio.to_thread(self.web_search_tool._run, message)
+        web_results = await self.web_search_tool.ainvoke(message)
         if not web_results:
             return None
 
@@ -490,7 +493,7 @@ class AgentService:
                 f"User message:\n{message}"
             )
 
-        web_results = await asyncio.to_thread(self.web_search_tool._run, message)
+        web_results = await self.web_search_tool.ainvoke(message)
         if web_results.startswith("Error performing web search"):
             logger.warning("Fresh web search failed, falling back to model/tool planning.")
             return (

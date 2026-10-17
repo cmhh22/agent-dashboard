@@ -1,8 +1,8 @@
 """
-Web search tool using DuckDuckGo.
+Web search tool with DuckDuckGo and optional Parallel Search MCP.
 """
 from langchain.tools import BaseTool
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Literal
 from ddgs import DDGS
 import asyncio
 import logging
@@ -17,11 +17,14 @@ _DEFAULT_MAX_RESULTS = 5
 
 
 class WebSearchTool(BaseTool):
-    """Tool for searching the web using DuckDuckGo."""
+    """Tool for searching the web with the configured provider."""
     
     name: str = "web_search"
     description: str = """Useful for searching the internet for current information, news, facts, or any topic.
     Input should be a search query string. Returns relevant search results with titles and snippets."""
+
+    provider: Literal["duckduckgo", "parallel"] = "duckduckgo"
+    search_timeout: float = 30
 
     def _text_search_with_fallbacks(self, ddgs: DDGS, query: str) -> List[Dict[str, Any]]:
         """Run DuckDuckGo text search with multiple backend strategies."""
@@ -178,6 +181,9 @@ class WebSearchTool(BaseTool):
     
     def _run(self, query: str) -> str:
         """Execute the web search tool."""
+        if self.provider == "parallel":
+            return asyncio.run(self._arun(query))
+
         try:
             lowered = query.lower()
             freshness_sensitive = self._is_freshness_sensitive_query(query)
@@ -242,4 +248,8 @@ class WebSearchTool(BaseTool):
     
     async def _arun(self, query: str) -> str:
         """Async version of the web search tool."""
+        if self.provider == "parallel":
+            from app.tools.parallel_search import search
+
+            return await search(query, timeout=self.search_timeout)
         return await asyncio.to_thread(self._run, query)

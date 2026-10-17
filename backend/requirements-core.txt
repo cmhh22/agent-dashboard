@@ -26,6 +26,7 @@ nest-asyncio>=1.6.0
 
 # Search tools
 duckduckgo-search>=4.1.1,<8.0.0
+mcp>=1.24.0,<2.0.0
 
 # Testing
 pytest>=8.0.0
